@@ -18,14 +18,6 @@ public class UIFloatingElement : MonoBehaviour
     {
         _rectTransform = transform as RectTransform;
 
-        if (_pivot == null)
-            _pivot = transform.Find("Pivot") as RectTransform;
-
-        if (_textDamage == null)
-            _textDamage = _pivot != null
-                ? _pivot.GetComponentInChildren<TMP_Text>()
-                : GetComponentInChildren<TMP_Text>();
-
         if (_textDamage != null)
             _baseColor = _textDamage.color;
     }

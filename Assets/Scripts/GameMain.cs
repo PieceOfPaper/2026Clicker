@@ -49,6 +49,7 @@ public class GameMain : MonoBehaviour
     private GameMonster _monster;
     public GameMonster Monster => _monster;
 
+    public System.Action OnStartCallback;
     public System.Action<float> OnAttackCallback;
 
     
@@ -67,6 +68,8 @@ public class GameMain : MonoBehaviour
     {
         SetupDummyResources();
         SpawnNormalMonster();
+        
+        OnStartCallback?.Invoke();
     }
 
     private void Update()
