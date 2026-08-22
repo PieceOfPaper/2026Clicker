@@ -1,10 +1,16 @@
 using System;
 using System.Collections;
+using System.Globalization;
 using TMPro;
 using UnityEngine;
 
 public class UIFloatingElement : MonoBehaviour
 {
+    private static readonly string[] s_suffixes =
+    {
+        string.Empty, "K", "M", "B", "T", "Qa", "Qi", "Sx", "Sp", "Oc", "No", "Dc"
+    };
+
     [SerializeField] private RectTransform _pivot;
     [SerializeField] private TMP_Text _textDamage;
     [SerializeField, Min(0.05f)] private float _duration = 0.7f;
@@ -22,7 +28,7 @@ public class UIFloatingElement : MonoBehaviour
             _baseColor = _textDamage.color;
     }
 
-    public void Play(float damage, Vector2 anchoredPosition, Action<UIFloatingElement> onComplete)
+    public void Play(BigNumber damage, Vector2 anchoredPosition, Action<UIFloatingElement> onComplete)
     {
         if (_rectTransform == null || _pivot == null || _textDamage == null)
         {
@@ -57,14 +63,20 @@ public class UIFloatingElement : MonoBehaviour
         onComplete?.Invoke(this);
     }
 
-    private static string FormatNumber(float value)
+    private static string FormatNumber(BigNumber value)
     {
-        if (value >= 1_000_000f)
-            return $"{value / 1_000_000f:0.#}M!";
+        var absolute = BigNumber.Abs(value);
+        if (absolute < 1_000)
+            return value.ToDouble().ToString("0.#", CultureInfo.InvariantCulture) + "!";
 
-        if (value >= 1_000f)
-            return $"{value / 1_000f:0.#}K!";
+        var suffixIndex = value.Exponent / 3;
+        if (suffixIndex > 0 && suffixIndex < s_suffixes.Length)
+        {
+            var scaled = value.Mantissa * Math.Pow(10d, value.Exponent - suffixIndex * 3);
+            return scaled.ToString("0.#", CultureInfo.InvariantCulture) + s_suffixes[suffixIndex] + "!";
+        }
 
-        return $"{value:0}!";
+        return value.Mantissa.ToString("0.##", CultureInfo.InvariantCulture) +
+               "e" + value.Exponent.ToString(CultureInfo.InvariantCulture) + "!";
     }
 }

@@ -37,7 +37,7 @@ public class UIFloating : MonoBehaviour
             GameMain.Instance.OnAttackCallback -= OnAttack;
     }
 
-    private void OnAttack(float damage)
+    private void OnAttack(BigNumber damage)
     {
         var monster = GameMain.Instance != null ? GameMain.Instance.Monster : null;
         if (monster == null || _rectTransform == null || _canvas == null)

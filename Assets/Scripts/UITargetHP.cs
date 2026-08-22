@@ -36,7 +36,7 @@ public class UITargetHP : MonoBehaviour
         UpdateUI_Hp(GameMain.Instance.CurrentMonsterHp, GameMain.Instance.CurrentMonsterMaxHp);
     }
     
-    private void OnAttack(float damage)
+    private void OnAttack(BigNumber damage)
     {
         if (GameMain.Instance == null)
             return;
@@ -45,9 +45,11 @@ public class UITargetHP : MonoBehaviour
     }
 
     
-    private void UpdateUI_Hp(float hp, float hpMax)
+    private void UpdateUI_Hp(BigNumber hp, BigNumber hpMax)
     {
-        if (_sliderHP != null) _sliderHP.value = hpMax == 0 ? 0f : hp / hpMax;
+        if (_sliderHP != null)
+            _sliderHP.value = hpMax.IsZero ? 0f : (float)(hp / hpMax).ToDouble();
+
         if (_textHp != null) _textHp.text = $"{hp} / {hpMax}";
     }
 }

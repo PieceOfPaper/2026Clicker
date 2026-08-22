@@ -12,8 +12,8 @@ public class GameMain : MonoBehaviour
     [SerializeField] private string _dummyMonsterName = "DummyMonster";
 
     [Header("Test Battle Settings")]
-    [SerializeField, Min(1f)] private float _tapDamage = 10f;
-    [SerializeField, Min(1f)] private float _normalMonsterBaseHp = 30f;
+    [SerializeField] private BigNumber _tapDamage = 10;
+    [SerializeField] private BigNumber _normalMonsterBaseHp = 30;
     [SerializeField, Min(1)] private int _normalMonsterReward = 5;
     [SerializeField, Min(1)] private int _normalMonstersPerStage = 10;
     [SerializeField, Min(1f)] private float _bossHpMultiplier = 10f;
@@ -30,13 +30,13 @@ public class GameMain : MonoBehaviour
     public int CurrentStage { get; private set; } = 1;
     public int NormalMonstersDefeated { get; private set; }
     public int Currency { get; private set; }
-    public float TapDamage => _tapDamage;
+    public BigNumber TapDamage => _tapDamage;
     public float BossTimeRemaining { get; private set; }
     public bool IsBossBattle { get; private set; }
     public bool IsBossRetryAvailable { get; private set; }
     public GameMonster CurrentMonster => _monster;
-    public float CurrentMonsterMaxHp { get; private set; }
-    public float CurrentMonsterHp { get; private set; }
+    public BigNumber CurrentMonsterMaxHp { get; private set; }
+    public BigNumber CurrentMonsterHp { get; private set; }
     public int CurrentMonsterCurrencyReward { get; private set; }
     public bool IsCurrentMonsterDead => CurrentMonsterHp <= 0f;
 
@@ -50,7 +50,7 @@ public class GameMain : MonoBehaviour
     public GameMonster Monster => _monster;
 
     public System.Action OnStartCallback;
-    public System.Action<float> OnAttackCallback;
+    public System.Action<BigNumber> OnAttackCallback;
 
     
     private void Awake()
@@ -89,7 +89,7 @@ public class GameMain : MonoBehaviour
             return;
 
         _character.Attack();
-        CurrentMonsterHp = Mathf.Max(0f, CurrentMonsterHp - _tapDamage);
+        CurrentMonsterHp = BigNumber.Max(BigNumber.Zero, CurrentMonsterHp - _tapDamage);
         _monster.Hit();
         OnAttackCallback?.Invoke(_tapDamage);
 
@@ -133,8 +133,8 @@ public class GameMain : MonoBehaviour
         _monster = InstantiateResource<GameMonster>($"{RESOURCES_PATH_MONSTER}/{_dummyMonsterName}", _monsterPivot);
         if (_monster == null)
         {
-            CurrentMonsterMaxHp = 0f;
-            CurrentMonsterHp = 0f;
+            CurrentMonsterMaxHp = BigNumber.Zero;
+            CurrentMonsterHp = BigNumber.Zero;
             CurrentMonsterCurrencyReward = 0;
             return;
         }
