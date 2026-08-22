@@ -5,6 +5,7 @@ using UnityEngine;
 
 public class UIFloatingElement : MonoBehaviour
 {
+    [SerializeField] private RectTransform _pivot;
     [SerializeField] private TMP_Text _textDamage;
     [SerializeField, Min(0.05f)] private float _duration = 0.7f;
     [SerializeField, Min(1f)] private float _riseDistance = 100f;
@@ -17,8 +18,13 @@ public class UIFloatingElement : MonoBehaviour
     {
         _rectTransform = transform as RectTransform;
 
+        if (_pivot == null)
+            _pivot = transform.Find("Pivot") as RectTransform;
+
         if (_textDamage == null)
-            _textDamage = GetComponentInChildren<TMP_Text>();
+            _textDamage = _pivot != null
+                ? _pivot.GetComponentInChildren<TMP_Text>()
+                : GetComponentInChildren<TMP_Text>();
 
         if (_textDamage != null)
             _baseColor = _textDamage.color;
@@ -26,7 +32,7 @@ public class UIFloatingElement : MonoBehaviour
 
     public void Play(float damage, Vector2 anchoredPosition, Action<UIFloatingElement> onComplete)
     {
-        if (_rectTransform == null || _textDamage == null)
+        if (_rectTransform == null || _pivot == null || _textDamage == null)
         {
             onComplete?.Invoke(this);
             return;
@@ -36,17 +42,18 @@ public class UIFloatingElement : MonoBehaviour
             StopCoroutine(_animationCoroutine);
 
         _rectTransform.anchoredPosition = anchoredPosition;
+        _pivot.anchoredPosition = Vector2.zero;
         _textDamage.text = FormatNumber(damage);
         _textDamage.color = _baseColor;
-        _animationCoroutine = StartCoroutine(Animate(anchoredPosition, onComplete));
+        _animationCoroutine = StartCoroutine(Animate(onComplete));
     }
 
-    private IEnumerator Animate(Vector2 startPosition, Action<UIFloatingElement> onComplete)
+    private IEnumerator Animate(Action<UIFloatingElement> onComplete)
     {
         for (var elapsed = 0f; elapsed < _duration; elapsed += Time.deltaTime)
         {
             var progress = elapsed / _duration;
-            _rectTransform.anchoredPosition = startPosition + Vector2.up * (_riseDistance * progress);
+            _pivot.anchoredPosition = Vector2.up * (_riseDistance * progress);
 
             var color = _baseColor;
             color.a *= 1f - progress * progress;
