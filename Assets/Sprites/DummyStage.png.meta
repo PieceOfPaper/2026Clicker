@@ -126,7 +126,7 @@ TextureImporter:
     serializedVersion: 2
     sprites:
     - serializedVersion: 2
-      name: DummyBG
+      name: DummyStage
       rect:
         serializedVersion: 2
         x: 0
@@ -161,7 +161,7 @@ TextureImporter:
     spriteCustomMetadata:
       entries: []
     nameFileIdTable:
-      DummyBG: -1503024695037267218
+      DummyStage: -1503024695037267218
   mipmapLimitGroupName: 
   pSDRemoveMatte: 0
   userData: 
