@@ -41,8 +41,15 @@ public class GameMain : MonoBehaviour
     public bool IsCurrentMonsterDead => CurrentMonsterHp <= 0f;
 
     private GameStage _stage;
+    public GameStage Stage => _stage;
+
     private GameCharacter _character;
+    public GameCharacter Character => _character;
+
     private GameMonster _monster;
+    public GameMonster Monster => _monster;
+
+    public System.Action<float> OnAttackCallback;
 
     
     private void Awake()
@@ -80,7 +87,8 @@ public class GameMain : MonoBehaviour
 
         _character.Attack();
         CurrentMonsterHp = Mathf.Max(0f, CurrentMonsterHp - _tapDamage);
-        _monster.Hit(_tapDamage);
+        _monster.Hit();
+        OnAttackCallback?.Invoke(_tapDamage);
 
         if (IsCurrentMonsterDead)
             DefeatCurrentMonster();
