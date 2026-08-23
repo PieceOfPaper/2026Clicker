@@ -1,4 +1,5 @@
 using UnityEngine;
+using GoogleSheetsTable;
 
 public class GameMain : MonoBehaviour
 {
@@ -6,18 +7,13 @@ public class GameMain : MonoBehaviour
     [SerializeField] private Transform _characterPivot;
     [SerializeField] private Transform _monsterPivot;
 
-    [Header("Dummy Resources")]
-    [SerializeField] private string _dummyStageName = "DummyStage";
+    [Header("Fallback Resources")]
+    [SerializeField] private string _fallbackStageName = "DummyStage";
     [SerializeField] private string _dummyCharcterName = "DummyChar";
-    [SerializeField] private string _dummyMonsterName = "DummyMonster";
+    [SerializeField] private string _fallbackMonsterName = "DummyMonster";
 
-    [Header("Test Battle Settings")]
+    [Header("Battle Settings")]
     [SerializeField] private BigNumber _tapDamage = 10;
-    [SerializeField] private BigNumber _normalMonsterBaseHp = 30;
-    [SerializeField, Min(1)] private int _normalMonsterReward = 5;
-    [SerializeField, Min(1)] private int _normalMonstersPerStage = 10;
-    [SerializeField, Min(1f)] private float _bossHpMultiplier = 10f;
-    [SerializeField, Min(1f)] private float _bossTimeLimitSeconds = 30f;
 
     private static GameMain s_instance;
     public static GameMain Instance => s_instance;
@@ -29,15 +25,14 @@ public class GameMain : MonoBehaviour
 
     public int CurrentStage { get; private set; } = 1;
     public int NormalMonstersDefeated { get; private set; }
-    public int Currency { get; private set; }
+    public BigNumber Currency { get; private set; }
     public BigNumber TapDamage => _tapDamage;
     public float BossTimeRemaining { get; private set; }
     public bool IsBossBattle { get; private set; }
     public bool IsBossRetryAvailable { get; private set; }
-    public GameMonster CurrentMonster => _monster;
     public BigNumber CurrentMonsterMaxHp { get; private set; }
     public BigNumber CurrentMonsterHp { get; private set; }
-    public int CurrentMonsterCurrencyReward { get; private set; }
+    public BigNumber CurrentMonsterCurrencyReward { get; private set; }
     public bool IsCurrentMonsterDead => CurrentMonsterHp <= 0f;
 
     private GameStage _stage;
@@ -49,8 +44,12 @@ public class GameMain : MonoBehaviour
     private GameMonster _monster;
     public GameMonster Monster => _monster;
 
+    private GameTableDatabase _tableDatabase;
+    private Stage _currentStageData;
+
     public System.Action OnStartCallback;
     public System.Action<BigNumber> OnAttackCallback;
+    public System.Action OnMonsterHpChangedCallback;
 
     
     private void Awake()
@@ -66,7 +65,10 @@ public class GameMain : MonoBehaviour
 
     private void Start()
     {
-        SetupDummyResources();
+        if (!LoadTablesAndStage())
+            return;
+
+        SetupResources();
         SpawnNormalMonster();
         
         OnStartCallback?.Invoke();
@@ -91,6 +93,7 @@ public class GameMain : MonoBehaviour
         _character.Attack();
         CurrentMonsterHp = BigNumber.Max(BigNumber.Zero, CurrentMonsterHp - _tapDamage);
         _monster.Hit();
+        OnMonsterHpChangedCallback?.Invoke();
         OnAttackCallback?.Invoke(_tapDamage);
 
         if (IsCurrentMonsterDead)
@@ -99,7 +102,7 @@ public class GameMain : MonoBehaviour
 
     public void StartBossBattle()
     {
-        if (IsBossBattle || (!IsBossRetryAvailable && NormalMonstersDefeated < _normalMonstersPerStage))
+        if (IsBossBattle || (!IsBossRetryAvailable && NormalMonstersDefeated < _currentStageData.MonsterIds.Length))
             return;
 
         IsBossRetryAvailable = false;
@@ -110,12 +113,34 @@ public class GameMain : MonoBehaviour
     {
         if (s_instance == this)
             s_instance = null;
+
+        _tableDatabase?.Dispose();
     }
 
-    private void SetupDummyResources()
+    private bool LoadTablesAndStage()
     {
-        _stage = InstantiateResource<GameStage>($"{RESOURCES_PATH_STAGE}/{_dummyStageName}", _stagePivot);
+        _tableDatabase = new GameTableDatabase();
+        if (!_tableDatabase.Load())
+            return false;
+
+        return TrySetStage(CurrentStage);
+    }
+
+    private void SetupResources()
+    {
+        SpawnStage();
         _character = InstantiateResource<GameCharacter>($"{RESOURCES_PATH_CHARACTER}/{_dummyCharcterName}", _characterPivot);
+    }
+
+    private void SpawnStage()
+    {
+        if (_stage != null)
+            Destroy(_stage.gameObject);
+
+        var prefabName = string.IsNullOrWhiteSpace(_currentStageData.PrefabName)
+            ? _fallbackStageName
+            : _currentStageData.PrefabName;
+        _stage = InstantiateResource<GameStage>($"{RESOURCES_PATH_STAGE}/{prefabName}", _stagePivot);
     }
 
     private void SpawnNormalMonster()
@@ -130,24 +155,40 @@ public class GameMain : MonoBehaviour
         if (_monster != null)
             Destroy(_monster.gameObject);
 
-        _monster = InstantiateResource<GameMonster>($"{RESOURCES_PATH_MONSTER}/{_dummyMonsterName}", _monsterPivot);
+        var monsterId = isBoss
+            ? _currentStageData.BossMonsterId
+            : _currentStageData.MonsterIds[Mathf.Clamp(NormalMonstersDefeated, 0, _currentStageData.MonsterIds.Length - 1)];
+        var monsterData = _tableDatabase.Tables.GetMonsterByID(monsterId);
+        if (!monsterData.IsValid)
+        {
+            Debug.LogError($"Monster table row not found: ID {monsterId}", this);
+            return;
+        }
+
+        var prefabName = string.IsNullOrWhiteSpace(monsterData.PrefabName)
+            ? _fallbackMonsterName
+            : monsterData.PrefabName;
+        _monster = InstantiateResource<GameMonster>($"{RESOURCES_PATH_MONSTER}/{prefabName}", _monsterPivot);
         if (_monster == null)
         {
             CurrentMonsterMaxHp = BigNumber.Zero;
             CurrentMonsterHp = BigNumber.Zero;
-            CurrentMonsterCurrencyReward = 0;
+            CurrentMonsterCurrencyReward = BigNumber.Zero;
             return;
         }
 
-        var stageHp = _normalMonsterBaseHp + (CurrentStage - 1) * _normalMonsterBaseHp * 0.5f;
-        CurrentMonsterMaxHp = isBoss ? stageHp * _bossHpMultiplier : stageHp;
+        var baseHp = ParseTableNumber(monsterData.BaseHp, $"Monster {monsterId} BaseHp");
+        var baseReward = ParseTableNumber(monsterData.BaseReward, $"Monster {monsterId} BaseReward");
+        var hpMultiplier = ParseTableNumber(_currentStageData.HpMultiplier, $"Stage {CurrentStage} HpMultiplier");
+        var rewardMultiplier = ParseTableNumber(_currentStageData.RewardMultiplier, $"Stage {CurrentStage} RewardMultiplier");
+
+        CurrentMonsterMaxHp = baseHp * hpMultiplier;
         CurrentMonsterHp = CurrentMonsterMaxHp;
-        CurrentMonsterCurrencyReward = isBoss
-            ? _normalMonsterReward * _normalMonstersPerStage
-            : _normalMonsterReward;
+        CurrentMonsterCurrencyReward = baseReward * rewardMultiplier;
 
         IsBossBattle = isBoss;
-        BossTimeRemaining = isBoss ? _bossTimeLimitSeconds : 0f;
+        BossTimeRemaining = isBoss ? _currentStageData.BossTimeLimitSeconds : 0f;
+        OnMonsterHpChangedCallback?.Invoke();
     }
 
     private void DefeatCurrentMonster()
@@ -156,25 +197,58 @@ public class GameMain : MonoBehaviour
 
         if (IsBossBattle)
         {
-            CurrentStage++;
+            var nextStageId = _currentStageData.NextStageId;
             NormalMonstersDefeated = 0;
             IsBossBattle = false;
             BossTimeRemaining = 0f;
+
+            if (nextStageId > 0 && TrySetStage(nextStageId))
+                SpawnStage();
+
             SpawnNormalMonster();
             return;
         }
 
         NormalMonstersDefeated++;
-        if (NormalMonstersDefeated >= _normalMonstersPerStage && !IsBossRetryAvailable)
+        if (NormalMonstersDefeated >= _currentStageData.MonsterIds.Length && !IsBossRetryAvailable)
         {
             StartBossBattle();
             return;
         }
 
-        if (NormalMonstersDefeated >= _normalMonstersPerStage)
+        if (NormalMonstersDefeated >= _currentStageData.MonsterIds.Length)
             NormalMonstersDefeated = 0;
 
         SpawnNormalMonster();
+    }
+
+    private bool TrySetStage(int stageId)
+    {
+        var stageData = _tableDatabase.Tables.GetStageByID(stageId);
+        if (!stageData.IsValid)
+        {
+            Debug.LogError($"Stage table row not found: ID {stageId}", this);
+            return false;
+        }
+
+        if (stageData.MonsterIds == null || stageData.MonsterIds.Length == 0)
+        {
+            Debug.LogError($"Stage {stageId} has no normal monsters.", this);
+            return false;
+        }
+
+        CurrentStage = stageId;
+        _currentStageData = stageData;
+        return true;
+    }
+
+    private BigNumber ParseTableNumber(string value, string fieldName)
+    {
+        if (BigNumber.TryParse(value, out var result))
+            return result;
+
+        Debug.LogError($"Invalid BigNumber in {fieldName}: '{value}'", this);
+        return BigNumber.Zero;
     }
 
     private void FailBossBattle()

@@ -10,36 +10,24 @@ public class UITargetHP : MonoBehaviour
     private void Start()
     {
         if (GameMain.Instance != null)
-            GameMain.Instance.OnStartCallback += OnStart;
-        
-        if (GameMain.Instance != null)
-            GameMain.Instance.OnAttackCallback += OnAttack;
-        
-        UpdateUI_Hp(default, default);
+            GameMain.Instance.OnMonsterHpChangedCallback += Refresh;
+
+        Refresh();
     }
 
     private void OnDestroy()
     {
         if (GameMain.Instance != null)
-            GameMain.Instance.OnStartCallback -= OnStart;
-        
-        if (GameMain.Instance != null)
-            GameMain.Instance.OnAttackCallback -= OnAttack;
+            GameMain.Instance.OnMonsterHpChangedCallback -= Refresh;
     }
 
-    
-    private void OnStart()
+    private void Refresh()
     {
         if (GameMain.Instance == null)
+        {
+            UpdateUI_Hp(default, default);
             return;
-
-        UpdateUI_Hp(GameMain.Instance.CurrentMonsterHp, GameMain.Instance.CurrentMonsterMaxHp);
-    }
-    
-    private void OnAttack(BigNumber damage)
-    {
-        if (GameMain.Instance == null)
-            return;
+        }
 
         UpdateUI_Hp(GameMain.Instance.CurrentMonsterHp, GameMain.Instance.CurrentMonsterMaxHp);
     }

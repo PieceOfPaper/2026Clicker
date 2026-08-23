@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="utf-8"?>
+<MonsterTable>
+  <Monster ID="1" DisplayName="연습용 슬라임" BaseHp="10" BaseReward="1" PrefabName="DummyMonster" />
+  <Monster ID="2" DisplayName="들쥐" BaseHp="12" BaseReward="1" PrefabName="DummyMonster" />
+  <Monster ID="3" DisplayName="뿔버섯" BaseHp="15" BaseReward="2" PrefabName="DummyMonster" />
+  <Monster ID="4" DisplayName="잎새 정령" BaseHp="18" BaseReward="2" PrefabName="DummyMonster" />
+  <Monster ID="5" DisplayName="꿀벌" BaseHp="22" BaseReward="3" PrefabName="DummyMonster" />
+  <Monster ID="6" DisplayName="숲 도깨비" BaseHp="26" BaseReward="3" PrefabName="DummyMonster" />
+  <Monster ID="7" DisplayName="덩굴 괴물" BaseHp="32" BaseReward="4" PrefabName="DummyMonster" />
+  <Monster ID="8" DisplayName="돌멩이 골렘" BaseHp="40" BaseReward="5" PrefabName="DummyMonster" />
+  <Monster ID="9" DisplayName="야생 멧돼지" BaseHp="50" BaseReward="6" PrefabName="DummyMonster" />
+  <Monster ID="10" DisplayName="초원 와이번" BaseHp="65" BaseReward="8" PrefabName="DummyMonster" />
+  <Monster ID="11" DisplayName="거대 슬라임" BaseHp="120" BaseReward="20" PrefabName="DummyMonster" />
+  <Monster ID="12" DisplayName="분노한 골렘" BaseHp="160" BaseReward="25" PrefabName="DummyMonster" />
+  <Monster ID="13" DisplayName="고대 나무 정령" BaseHp="220" BaseReward="35" PrefabName="DummyMonster" />
+  <Monster ID="14" DisplayName="동굴 박쥐" BaseHp="35" BaseReward="4" PrefabName="DummyMonster" />
+  <Monster ID="15" DisplayName="꼬마 드래곤" BaseHp="80" BaseReward="10" PrefabName="DummyMonster" />
+</MonsterTable>
