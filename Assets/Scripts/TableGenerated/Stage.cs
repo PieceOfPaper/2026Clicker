@@ -13,7 +13,7 @@ namespace GoogleSheetsTable
 		public readonly int BossMonsterId;
 		public readonly int BossTimeLimitSeconds;
 		public readonly string HpMultiplier;
-		public readonly string RewardMultiplier;
+		public readonly string RewardGoldMultiplier;
 		public readonly string PrefabName;
 		public readonly int NextStageId;
 		public Stage(System.Xml.XmlReader xmlReader)
@@ -29,8 +29,8 @@ namespace GoogleSheetsTable
 			int.TryParse(xmlReader.GetAttribute("BossTimeLimitSeconds"), out BossTimeLimitSeconds);
 			HpMultiplier = default;
 			HpMultiplier = xmlReader.GetAttribute("HpMultiplier");
-			RewardMultiplier = default;
-			RewardMultiplier = xmlReader.GetAttribute("RewardMultiplier");
+			RewardGoldMultiplier = default;
+			RewardGoldMultiplier = xmlReader.GetAttribute("RewardGoldMultiplier");
 			PrefabName = default;
 			PrefabName = xmlReader.GetAttribute("PrefabName");
 			NextStageId = default;
@@ -46,7 +46,7 @@ namespace GoogleSheetsTable
 			BossMonsterId = binaryReader.ReadInt32();
 			BossTimeLimitSeconds = binaryReader.ReadInt32();
 			HpMultiplier = binaryReader.ReadString();
-			RewardMultiplier = binaryReader.ReadString();
+			RewardGoldMultiplier = binaryReader.ReadString();
 			PrefabName = binaryReader.ReadString();
 			NextStageId = binaryReader.ReadInt32();
 		}
@@ -58,7 +58,7 @@ namespace GoogleSheetsTable
 			binaryWriter.Write(BossMonsterId);
 			binaryWriter.Write(BossTimeLimitSeconds);
 			binaryWriter.Write(HpMultiplier);
-			binaryWriter.Write(RewardMultiplier);
+			binaryWriter.Write(RewardGoldMultiplier);
 			binaryWriter.Write(PrefabName);
 			binaryWriter.Write(NextStageId);
 		}

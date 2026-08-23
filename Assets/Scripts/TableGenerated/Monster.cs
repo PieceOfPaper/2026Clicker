@@ -11,7 +11,7 @@ namespace GoogleSheetsTable
 		public readonly int ID;
 		public readonly string DisplayName;
 		public readonly string BaseHp;
-		public readonly string BaseReward;
+		public readonly string BaseRewardGold;
 		public readonly string PrefabName;
 		public Monster(System.Xml.XmlReader xmlReader)
 		{
@@ -22,8 +22,8 @@ namespace GoogleSheetsTable
 			DisplayName = xmlReader.GetAttribute("DisplayName");
 			BaseHp = default;
 			BaseHp = xmlReader.GetAttribute("BaseHp");
-			BaseReward = default;
-			BaseReward = xmlReader.GetAttribute("BaseReward");
+			BaseRewardGold = default;
+			BaseRewardGold = xmlReader.GetAttribute("BaseRewardGold");
 			PrefabName = default;
 			PrefabName = xmlReader.GetAttribute("PrefabName");
 		}
@@ -33,7 +33,7 @@ namespace GoogleSheetsTable
 			ID = binaryReader.ReadInt32();
 			DisplayName = binaryReader.ReadString();
 			BaseHp = binaryReader.ReadString();
-			BaseReward = binaryReader.ReadString();
+			BaseRewardGold = binaryReader.ReadString();
 			PrefabName = binaryReader.ReadString();
 		}
 		public void ExportBinary(System.IO.BinaryWriter binaryWriter)
@@ -41,7 +41,7 @@ namespace GoogleSheetsTable
 			binaryWriter.Write(ID);
 			binaryWriter.Write(DisplayName);
 			binaryWriter.Write(BaseHp);
-			binaryWriter.Write(BaseReward);
+			binaryWriter.Write(BaseRewardGold);
 			binaryWriter.Write(PrefabName);
 		}
 		public void Dispose()

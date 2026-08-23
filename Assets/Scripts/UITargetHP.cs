@@ -7,6 +7,7 @@ public class UITargetHP : MonoBehaviour
     [SerializeField] private TMPro.TMP_Text _textHp;
     [SerializeField] private Slider _sliderTime;
     [SerializeField] private TMPro.TMP_Text _textTime;
+    [SerializeField] private Button _buttonBoss;
     
 
     private void Start()
@@ -14,19 +15,27 @@ public class UITargetHP : MonoBehaviour
         if (GameMain.Instance != null)
             GameMain.Instance.OnMonsterHpChangedCallback += Refresh;
 
+        if (_buttonBoss != null)
+            _buttonBoss.onClick.AddListener(OnClickBoss);
+
         Refresh();
         RefreshBossTime();
+        RefreshBossButton();
     }
 
-    private void Update()
+    private void LateUpdate()
     {
         RefreshBossTime();
+        RefreshBossButton();
     }
 
     private void OnDestroy()
     {
         if (GameMain.Instance != null)
             GameMain.Instance.OnMonsterHpChangedCallback -= Refresh;
+
+        if (_buttonBoss != null)
+            _buttonBoss.onClick.RemoveListener(OnClickBoss);
     }
 
     private void Refresh()
@@ -76,5 +85,28 @@ public class UITargetHP : MonoBehaviour
             if (showBossTime)
                 _textTime.text = gameMain.BossTimeRemaining.ToString("0.0");
         }
+    }
+
+    private void RefreshBossButton()
+    {
+        if (_buttonBoss == null)
+            return;
+
+        var gameMain = GameMain.Instance;
+        var showBossButton = gameMain != null &&
+                             gameMain.IsBossRetryAvailable &&
+                             !gameMain.IsBossBattle &&
+                             gameMain.Monster != null;
+        _buttonBoss.gameObject.SetActive(showBossButton);
+    }
+
+    private void OnClickBoss()
+    {
+        if (GameMain.Instance == null)
+            return;
+
+        GameMain.Instance.StartBossBattle();
+        RefreshBossButton();
+        RefreshBossTime();
     }
 }

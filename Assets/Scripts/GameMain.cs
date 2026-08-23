@@ -7,6 +7,7 @@ public class GameMain : MonoBehaviour
     [SerializeField] private Transform _stagePivot;
     [SerializeField] private Transform _characterPivot;
     [SerializeField] private Transform _monsterPivot;
+    [SerializeField] private CoinParticleAttractor _coinParticleAttractor;
 
     [Header("Fallback Resources")]
     [SerializeField] private string _fallbackStageName = "DummyStage";
@@ -34,7 +35,7 @@ public class GameMain : MonoBehaviour
     public bool IsBossRetryAvailable { get; private set; }
     public BigNumber CurrentMonsterMaxHp { get; private set; }
     public BigNumber CurrentMonsterHp { get; private set; }
-    public BigNumber CurrentMonsterCurrencyReward { get; private set; }
+    public BigNumber CurrentMonsterRewardGold { get; private set; }
     public bool IsCurrentMonsterDead => CurrentMonsterHp <= 0f;
 
     private GameStage _stage;
@@ -49,10 +50,12 @@ public class GameMain : MonoBehaviour
     private GameTableDatabase _tableDatabase;
     private Stage _currentStageData;
     private bool _isMonsterDefeatSequenceActive;
+    private Coroutine _spawnAfterDefeatCoroutine;
 
     public System.Action OnStartCallback;
     public System.Action<BigNumber> OnAttackCallback;
     public System.Action OnMonsterHpChangedCallback;
+    public System.Action<BigNumber> OnGoldChangedCallback;
 
     
     private void Awake()
@@ -105,12 +108,23 @@ public class GameMain : MonoBehaviour
 
     public void StartBossBattle()
     {
-        if (_isMonsterDefeatSequenceActive || IsBossBattle ||
-            (!IsBossRetryAvailable && NormalMonstersDefeated < _currentStageData.MonsterIds.Length))
+        if (IsBossBattle || (!IsBossRetryAvailable && NormalMonstersDefeated < _currentStageData.MonsterIds.Length))
             return;
+
+        if (_isMonsterDefeatSequenceActive)
+            CancelMonsterDefeatSequence();
 
         IsBossRetryAvailable = false;
         SpawnMonster(true);
+    }
+
+    public void AddGold(BigNumber amount)
+    {
+        if (amount <= BigNumber.Zero)
+            return;
+
+        Currency += amount;
+        OnGoldChangedCallback?.Invoke(Currency);
     }
 
     private void OnDestroy()
@@ -177,18 +191,18 @@ public class GameMain : MonoBehaviour
         {
             CurrentMonsterMaxHp = BigNumber.Zero;
             CurrentMonsterHp = BigNumber.Zero;
-            CurrentMonsterCurrencyReward = BigNumber.Zero;
+            CurrentMonsterRewardGold = BigNumber.Zero;
             return;
         }
 
         var baseHp = ParseTableNumber(monsterData.BaseHp, $"Monster {monsterId} BaseHp");
-        var baseReward = ParseTableNumber(monsterData.BaseReward, $"Monster {monsterId} BaseReward");
+        var baseRewardGold = ParseTableNumber(monsterData.BaseRewardGold, $"Monster {monsterId} BaseReward");
         var hpMultiplier = ParseTableNumber(_currentStageData.HpMultiplier, $"Stage {CurrentStage} HpMultiplier");
-        var rewardMultiplier = ParseTableNumber(_currentStageData.RewardMultiplier, $"Stage {CurrentStage} RewardMultiplier");
+        var rewardMultiplierGold = ParseTableNumber(_currentStageData.RewardGoldMultiplier, $"Stage {CurrentStage} RewardMultiplier");
 
         CurrentMonsterMaxHp = baseHp * hpMultiplier;
         CurrentMonsterHp = CurrentMonsterMaxHp;
-        CurrentMonsterCurrencyReward = baseReward * rewardMultiplier;
+        CurrentMonsterRewardGold = baseRewardGold * rewardMultiplierGold;
 
         IsBossBattle = isBoss;
         BossTimeRemaining = isBoss ? _currentStageData.BossTimeLimitSeconds : 0f;
@@ -203,14 +217,24 @@ public class GameMain : MonoBehaviour
             return;
 
         _isMonsterDefeatSequenceActive = true;
-        Currency += CurrentMonsterCurrencyReward;
+        var rewardStarted = _coinParticleAttractor != null &&
+                            _character != null &&
+                            _coinParticleAttractor.PlayReward(
+                                _monster.transform.position,
+                                _character.transform,
+                                CurrentMonsterRewardGold,
+                                IsBossBattle);
+        if (!rewardStarted)
+            AddGold(CurrentMonsterRewardGold);
+
         _monster.Defeat();
-        StartCoroutine(SpawnAfterDefeat(IsBossBattle));
+        _spawnAfterDefeatCoroutine = StartCoroutine(SpawnAfterDefeat(IsBossBattle));
     }
 
     private IEnumerator SpawnAfterDefeat(bool defeatedBoss)
     {
         yield return new WaitForSeconds(1f);
+        _spawnAfterDefeatCoroutine = null;
 
         if (defeatedBoss)
         {
@@ -238,6 +262,24 @@ public class GameMain : MonoBehaviour
             NormalMonstersDefeated = 0;
 
         SpawnNormalMonster();
+    }
+
+    private void CancelMonsterDefeatSequence()
+    {
+        if (_spawnAfterDefeatCoroutine != null)
+        {
+            StopCoroutine(_spawnAfterDefeatCoroutine);
+            _spawnAfterDefeatCoroutine = null;
+        }
+
+        if (_monster != null)
+        {
+            _monster.gameObject.SetActive(false);
+            Destroy(_monster.gameObject);
+            _monster = null;
+        }
+
+        _isMonsterDefeatSequenceActive = false;
     }
 
     private bool TrySetStage(int stageId)
