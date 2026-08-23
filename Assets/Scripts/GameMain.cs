@@ -1,3 +1,4 @@
+using System.Collections;
 using UnityEngine;
 using GoogleSheetsTable;
 
@@ -46,6 +47,7 @@ public class GameMain : MonoBehaviour
 
     private GameTableDatabase _tableDatabase;
     private Stage _currentStageData;
+    private bool _isMonsterDefeatSequenceActive;
 
     public System.Action OnStartCallback;
     public System.Action<BigNumber> OnAttackCallback;
@@ -87,7 +89,7 @@ public class GameMain : MonoBehaviour
     
     public void Touch()
     {
-        if (_character == null || _monster == null || IsCurrentMonsterDead)
+        if (_character == null || _monster == null || IsCurrentMonsterDead || _isMonsterDefeatSequenceActive)
             return;
 
         _character.Attack();
@@ -102,7 +104,8 @@ public class GameMain : MonoBehaviour
 
     public void StartBossBattle()
     {
-        if (IsBossBattle || (!IsBossRetryAvailable && NormalMonstersDefeated < _currentStageData.MonsterIds.Length))
+        if (_isMonsterDefeatSequenceActive || IsBossBattle ||
+            (!IsBossRetryAvailable && NormalMonstersDefeated < _currentStageData.MonsterIds.Length))
             return;
 
         IsBossRetryAvailable = false;
@@ -188,14 +191,27 @@ public class GameMain : MonoBehaviour
 
         IsBossBattle = isBoss;
         BossTimeRemaining = isBoss ? _currentStageData.BossTimeLimitSeconds : 0f;
+        _isMonsterDefeatSequenceActive = false;
+        _monster.Appear();
         OnMonsterHpChangedCallback?.Invoke();
     }
 
     private void DefeatCurrentMonster()
     {
-        Currency += CurrentMonsterCurrencyReward;
+        if (_isMonsterDefeatSequenceActive)
+            return;
 
-        if (IsBossBattle)
+        _isMonsterDefeatSequenceActive = true;
+        Currency += CurrentMonsterCurrencyReward;
+        _monster.Defeat();
+        StartCoroutine(SpawnAfterDefeat(IsBossBattle));
+    }
+
+    private IEnumerator SpawnAfterDefeat(bool defeatedBoss)
+    {
+        yield return new WaitForSeconds(1f);
+
+        if (defeatedBoss)
         {
             var nextStageId = _currentStageData.NextStageId;
             NormalMonstersDefeated = 0;
@@ -206,14 +222,15 @@ public class GameMain : MonoBehaviour
                 SpawnStage();
 
             SpawnNormalMonster();
-            return;
+            yield break;
         }
 
         NormalMonstersDefeated++;
         if (NormalMonstersDefeated >= _currentStageData.MonsterIds.Length && !IsBossRetryAvailable)
         {
-            StartBossBattle();
-            return;
+            IsBossRetryAvailable = false;
+            SpawnMonster(true);
+            yield break;
         }
 
         if (NormalMonstersDefeated >= _currentStageData.MonsterIds.Length)

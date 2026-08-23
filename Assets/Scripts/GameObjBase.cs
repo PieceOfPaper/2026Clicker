@@ -33,10 +33,18 @@ public class GameObjBase : MonoBehaviour
 
     protected void PlayScaleFeedback(Vector3 targetScaleMultiplier, float duration)
     {
-        if (_feedbackCoroutine != null)
-            StopCoroutine(_feedbackCoroutine);
+        StopScaleFeedback();
 
         _feedbackCoroutine = StartCoroutine(ScaleFeedback(targetScaleMultiplier, duration));
+    }
+
+    protected void StopScaleFeedback()
+    {
+        if (_feedbackCoroutine == null)
+            return;
+
+        StopCoroutine(_feedbackCoroutine);
+        _feedbackCoroutine = null;
     }
 
     private IEnumerator ScaleFeedback(Vector3 targetScaleMultiplier, float duration)
