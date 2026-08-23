@@ -17,56 +17,102 @@
 | 보스 실패 후 반복 대상 | 해당 스테이지 일반 몬스터 10마리 | 확정 | 1번부터 10번까지 순서대로 반복 |
 | 반복 전투 중 보스 진입 | `보스와 전투` 버튼 | 확정 | 보스는 자동으로 재등장하지 않음 |
 | 자동 전투 | 추후 해금 | 방향 확정 | 현재 MVP에서는 제외 |
+| 기본 처치 보상 | Gold | 확정 | 일반 몬스터와 보스 처치 시 드롭 |
+| Gold 사용처 | 터치 피해, 터치 치명타 확률, 터치 치명타 대미지 강화 | 확정 | 그 밖의 성장 요소는 현재 보류 |
+| 기본 치명타 대미지 | 200% | 확정 | 강화 보너스와 별도로 적용 |
 
-## StageTable 후보
+## StageTable 현재 구조
 
-스테이지 단위의 진행 규칙과 콘텐츠 연결 값을 관리합니다.
+스테이지 단위의 진행 규칙과 콘텐츠 연결 값을 관리합니다. Google Sheets의 실제 탭 이름은 `Stage`입니다.
 
-| 필드 후보 | 용도 | 현재 값 | 상태 |
+| 필드 | 용도 | 현재 값 | 상태 |
 | --- | --- | --- | --- |
-| `StageId` | 스테이지 식별자 | 미정 | 미정 |
-| `NormalMonsterCount` | 보스 전 일반 몬스터 처치 수 | 10 | 확정 |
-| `NormalMonsterSequence` | 등장할 일반 몬스터 ID와 순서 | 미정 | 미정 |
-| `BossMonsterId` | 스테이지 보스 ID | 미정 | 미정 |
+| `ID` | 스테이지 식별자 | 1부터 시작 | 확정 |
+| `MonsterIds` | 보스 전 등장할 몬스터 ID와 순서 | 쉼표로 구분한 `array:int` | 확정 |
+| `BossMonsterId` | 스테이지 보스의 `Monster.ID` | 스테이지별 지정 | 확정 |
 | `BossTimeLimitSeconds` | 보스 제한시간 | 30 | 확정 |
-| `BackgroundId` | 스테이지 배경 리소스 ID | 미정 | 미정 |
-| `RewardMultiplier` | 스테이지 보상 배율 | 미정 | 미정 |
+| `HpMultiplier` | 스테이지 체력 배율 | BigNumber 문자열 | 확정 |
+| `RewardGoldMultiplier` | 스테이지 Gold 보상 배율 | BigNumber 문자열 | 확정 |
+| `PrefabName` | 배경 Prefab 이름 | 현재 `DummyStage` | 확정 |
+| `NextStageId` | 다음 스테이지 ID | 마지막 테스트 스테이지는 0 | 확정 |
 
-## MonsterTable 후보
+## MonsterTable 현재 구조
 
-일반 몬스터와 보스의 전투 수치 및 리소스 연결 값을 관리합니다.
+일반 몬스터와 보스가 공통으로 사용하는 전투 수치 및 Prefab 연결 값을 관리합니다. Google Sheets의 실제 탭 이름은 `Monster`입니다.
 
-| 필드 후보 | 용도 | 현재 값 | 상태 |
+| 필드 | 용도 | 현재 값 | 상태 |
 | --- | --- | --- | --- |
-| `MonsterId` | 몬스터 식별자 | 미정 | 미정 |
-| `MonsterType` | 일반 또는 보스 구분 | 미정 | 미정 |
-| `MaxHp` | 최대 체력 | 미정 | 미정 |
-| `BasicCurrencyReward` | 처치 시 기본 재화 보상 | 미정 | 미정 |
-| `PrefabId` | 표시할 Prefab 또는 외형 ID | 미정 | 미정 |
-| `HitAnimationId` | 피격 애니메이션 ID | 미정 | 미정 |
-| `DeathAnimationId` | 사망 애니메이션 ID | 미정 | 미정 |
+| `ID` | 몬스터 식별자 | 1부터 시작 | 확정 |
+| `DisplayName` | UI 표시 이름 | 몬스터별 지정 | 확정 |
+| `BaseHp` | 스테이지 배율 적용 전 기본 체력 | BigNumber 문자열 | 확정 |
+| `BaseRewardGold` | 처치 시 기본 Gold 보상 | BigNumber 문자열 | 확정 |
+| `PrefabName` | 몬스터 Prefab 이름 | `DummyMonster_Normal1~56`, `DummyMonster_Alternative1~56` 중 지정 | 확정 |
 
-## TapUpgradeTable 후보
+최종 전투 값은 다음 규칙을 사용합니다.
 
-수동 터치 공격과 강화 비용을 관리합니다.
+```text
+최종 체력 = Monster.BaseHp × Stage.HpMultiplier
+최종 Gold 보상 = Monster.BaseRewardGold × Stage.RewardGoldMultiplier
+```
 
-| 필드 후보 | 용도 | 현재 값 | 상태 |
+## TouchDamageTable 현재 구조
+
+터치 피해 강화 레벨별 피해량과 비용을 관리합니다. Google Sheets의 실제 탭 이름은 `TouchDamage`입니다.
+
+| 필드 | 타입 | 용도 | 현재 상태 |
 | --- | --- | --- | --- |
-| `Level` | 강화 레벨 | 미정 | 미정 |
-| `TapDamage` | 해당 레벨의 터치 피해량 | 미정 | 미정 |
-| `UpgradeCost` | 다음 레벨 구매 비용 | 미정 | 미정 |
-| `MaxLevel` | 최대 레벨 | 미정 | 미정 |
-| `DamageGrowthFormula` | 피해량 증가 공식 또는 참조 ID | 미정 | 미정 |
-| `CostGrowthFormula` | 가격 증가 공식 또는 참조 ID | 미정 | 미정 |
+| `ID` | `int` | 강화 레벨 | 1레벨부터 시작 |
+| `Damage` | `string` | 해당 레벨의 터치 피해량 | BigNumber로 파싱 |
+| `RequiredGold` | `string` | 이전 레벨에서 해당 레벨로 강화할 때 필요한 Gold | BigNumber로 파싱, 1레벨은 0 |
 
+- 테스트 데이터는 1~10레벨을 제공한다.
+- 피해량과 비용은 파싱 및 강화 흐름 검증을 위한 임시값이다.
+- 레벨당 피해 증가량, 최대 레벨과 비용 곡선은 미정이다.
+
+## TouchCriticalChanceTable 현재 구조
+
+터치 치명타 확률 강화 레벨별 확률과 비용을 관리합니다. Google Sheets의 실제 탭 이름은 `TouchCriticalChance`입니다.
+
+| 필드 | 타입 | 용도 | 현재 상태 |
+| --- | --- | --- | --- |
+| `ID` | `int` | 강화 레벨 | 1~5000레벨 |
+| `Chance` | `float` | 해당 레벨의 터치 치명타 확률 | 0.0~1.0 값, 1레벨 0.0001, 5000레벨 0.5 |
+| `RequiredGold` | `string` | 이전 레벨에서 해당 레벨로 강화할 때 필요한 Gold | BigNumber로 파싱, 1레벨은 0 |
+
+```text
+Chance = min(ID × 0.0001, 0.5)
+```
+
+- 테스트 데이터는 1~10레벨과 상한 검증용 5000레벨을 제공한다.
+- `0.0001`은 UI 백분율로 `0.01%`, `0.5`는 `50%`를 뜻한다.
+- 비용은 임시값이며 최종 비용 곡선은 미정이다.
+
+## TouchCriticalDamageTable 현재 구조
+
+터치 치명타 대미지 강화 레벨별 보너스와 비용을 관리합니다. Google Sheets의 실제 탭 이름은 `TouchCriticalDamage`입니다.
+
+| 필드 | 타입 | 용도 | 현재 상태 |
+| --- | --- | --- | --- |
+| `ID` | `int` | 강화 레벨 | 1~5000레벨 |
+| `BonusDamageRate` | `float` | 기본 200%에 더할 치명타 대미지 보너스 | 0.0~1.0 값, 1레벨 0.0001, 5000레벨 0.5 |
+| `RequiredGold` | `string` | 이전 레벨에서 해당 레벨로 강화할 때 필요한 Gold | BigNumber로 파싱, 1레벨은 0 |
+
+```text
+최종 치명타 배율 = 2.0 + BonusDamageRate
+```
+
+- 테스트 데이터는 1~10레벨과 상한 검증용 5000레벨을 제공한다.
+- `BonusDamageRate=0.0001`이면 최종 배율은 `2.0001`, 즉 `200.01%`다.
+- `BonusDamageRate=0.5`이면 최종 배율은 `2.5`, 즉 `250%`다.
+- 비용은 임시값이며 최종 비용 곡선은 미정이다.
 ## CurrencyTable 후보
 
 재화의 표시와 사용 규칙을 관리합니다.
 
 | 필드 후보 | 용도 | 현재 값 | 상태 |
 | --- | --- | --- | --- |
-| `CurrencyId` | 재화 식별자 | 미정 | 미정 |
-| `DisplayName` | 화면에 표시할 이름 | 미정 | 미정 |
+| `CurrencyId` | 재화 식별자 | `Gold` | 확정 |
+| `DisplayName` | 화면에 표시할 이름 | `Gold` 또는 `골드` | 확정 |
 | `IconId` | 아이콘 리소스 ID | 미정 | 미정 |
 | `InitialAmount` | 신규 게임 시작 보유량 | 미정 | 미정 |
 
