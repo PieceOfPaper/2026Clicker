@@ -29,6 +29,7 @@ public class GameMain : MonoBehaviour
     public BigNumber Currency { get; private set; }
     public BigNumber TapDamage => _tapDamage;
     public float BossTimeRemaining { get; private set; }
+    public float CurrentBossTimeLimit => _currentStageData.BossTimeLimitSeconds;
     public bool IsBossBattle { get; private set; }
     public bool IsBossRetryAvailable { get; private set; }
     public BigNumber CurrentMonsterMaxHp { get; private set; }
