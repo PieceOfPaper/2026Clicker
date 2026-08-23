@@ -133,7 +133,7 @@ GameObject:
   - component: {fileID: 2036497173322568083}
   - component: {fileID: 8360781297561565988}
   m_Layer: 0
-  m_Name: DummyMonster
+  m_Name: DummyMonster_Normal29
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0

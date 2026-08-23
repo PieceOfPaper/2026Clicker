@@ -112,7 +112,7 @@ SpriteRenderer:
   m_SortingLayer: 0
   m_SortingOrder: 0
   m_MaskInteraction: 0
-  m_Sprite: {fileID: 7682317086175744181, guid: 520177956e32448798160cf122402e5a, type: 3}
+  m_Sprite: {fileID: 7085083263895577784, guid: cde3dbe600b9447e58bef214ef7d1a10, type: 3}
   m_Color: {r: 1, g: 1, b: 1, a: 1}
   m_FlipX: 0
   m_FlipY: 0
@@ -133,7 +133,7 @@ GameObject:
   - component: {fileID: 2036497173322568083}
   - component: {fileID: 8360781297561565988}
   m_Layer: 0
-  m_Name: DummyMonster
+  m_Name: DummyMonster_Normal7
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
