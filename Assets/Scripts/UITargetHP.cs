@@ -50,6 +50,7 @@ public class UITargetHP : MonoBehaviour
         if (_sliderHP != null)
             _sliderHP.value = hpMax.IsZero ? 0f : (float)(hp / hpMax).ToDouble();
 
-        if (_textHp != null) _textHp.text = $"{hp} / {hpMax}";
+        if (_textHp != null)
+            _textHp.text = $"{BigNumberFormatter.Format(hp)} / {BigNumberFormatter.Format(hpMax)}";
     }
 }

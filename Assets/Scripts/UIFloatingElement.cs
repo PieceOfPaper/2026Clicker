@@ -1,16 +1,10 @@
 using System;
 using System.Collections;
-using System.Globalization;
 using TMPro;
 using UnityEngine;
 
 public class UIFloatingElement : MonoBehaviour
 {
-    private static readonly string[] s_suffixes =
-    {
-        string.Empty, "K", "M", "B", "T", "Qa", "Qi", "Sx", "Sp", "Oc", "No", "Dc"
-    };
-
     [SerializeField] private RectTransform _pivot;
     [SerializeField] private TMP_Text _textDamage;
     [SerializeField, Min(0.05f)] private float _duration = 0.7f;
@@ -65,18 +59,6 @@ public class UIFloatingElement : MonoBehaviour
 
     private static string FormatNumber(BigNumber value)
     {
-        var absolute = BigNumber.Abs(value);
-        if (absolute < 1_000)
-            return value.ToDouble().ToString("0.#", CultureInfo.InvariantCulture) + "!";
-
-        var suffixIndex = value.Exponent / 3;
-        if (suffixIndex > 0 && suffixIndex < s_suffixes.Length)
-        {
-            var scaled = value.Mantissa * Math.Pow(10d, value.Exponent - suffixIndex * 3);
-            return scaled.ToString("0.#", CultureInfo.InvariantCulture) + s_suffixes[suffixIndex] + "!";
-        }
-
-        return value.Mantissa.ToString("0.##", CultureInfo.InvariantCulture) +
-               "e" + value.Exponent.ToString(CultureInfo.InvariantCulture) + "!";
+        return BigNumberFormatter.Format(value) + "!";
     }
 }
