@@ -17,34 +17,42 @@
 | 보스 실패 후 반복 대상 | 해당 스테이지 일반 몬스터 10마리 | 확정 | 1번부터 10번까지 순서대로 반복 |
 | 반복 전투 중 보스 진입 | `보스와 전투` 버튼 | 확정 | 보스는 자동으로 재등장하지 않음 |
 | 자동 전투 | 추후 해금 | 방향 확정 | 현재 MVP에서는 제외 |
+| 기본 처치 보상 | Gold | 확정 | 일반 몬스터와 보스 처치 시 드롭 |
+| Gold 사용처 | 공격력, 치명타 확률, 치명타 대미지, 향후 자동 전투 요소 강화 | 방향 확정 | 첫 구현은 캐릭터 공격력 강화 |
 
-## StageTable 후보
+## StageTable 현재 구조
 
-스테이지 단위의 진행 규칙과 콘텐츠 연결 값을 관리합니다.
+스테이지 단위의 진행 규칙과 콘텐츠 연결 값을 관리합니다. Google Sheets의 실제 탭 이름은 `Stage`입니다.
 
-| 필드 후보 | 용도 | 현재 값 | 상태 |
+| 필드 | 용도 | 현재 값 | 상태 |
 | --- | --- | --- | --- |
-| `StageId` | 스테이지 식별자 | 미정 | 미정 |
-| `NormalMonsterCount` | 보스 전 일반 몬스터 처치 수 | 10 | 확정 |
-| `NormalMonsterSequence` | 등장할 일반 몬스터 ID와 순서 | 미정 | 미정 |
-| `BossMonsterId` | 스테이지 보스 ID | 미정 | 미정 |
+| `ID` | 스테이지 식별자 | 1부터 시작 | 확정 |
+| `MonsterIds` | 보스 전 등장할 몬스터 ID와 순서 | 쉼표로 구분한 `array:int` | 확정 |
+| `BossMonsterId` | 스테이지 보스의 `Monster.ID` | 스테이지별 지정 | 확정 |
 | `BossTimeLimitSeconds` | 보스 제한시간 | 30 | 확정 |
-| `BackgroundId` | 스테이지 배경 리소스 ID | 미정 | 미정 |
-| `RewardMultiplier` | 스테이지 보상 배율 | 미정 | 미정 |
+| `HpMultiplier` | 스테이지 체력 배율 | BigNumber 문자열 | 확정 |
+| `RewardGoldMultiplier` | 스테이지 Gold 보상 배율 | BigNumber 문자열 | 확정 |
+| `PrefabName` | 배경 Prefab 이름 | 현재 `DummyStage` | 확정 |
+| `NextStageId` | 다음 스테이지 ID | 마지막 테스트 스테이지는 0 | 확정 |
 
-## MonsterTable 후보
+## MonsterTable 현재 구조
 
-일반 몬스터와 보스의 전투 수치 및 리소스 연결 값을 관리합니다.
+일반 몬스터와 보스가 공통으로 사용하는 전투 수치 및 Prefab 연결 값을 관리합니다. Google Sheets의 실제 탭 이름은 `Monster`입니다.
 
-| 필드 후보 | 용도 | 현재 값 | 상태 |
+| 필드 | 용도 | 현재 값 | 상태 |
 | --- | --- | --- | --- |
-| `MonsterId` | 몬스터 식별자 | 미정 | 미정 |
-| `MonsterType` | 일반 또는 보스 구분 | 미정 | 미정 |
-| `MaxHp` | 최대 체력 | 미정 | 미정 |
-| `BasicCurrencyReward` | 처치 시 기본 재화 보상 | 미정 | 미정 |
-| `PrefabId` | 표시할 Prefab 또는 외형 ID | 미정 | 미정 |
-| `HitAnimationId` | 피격 애니메이션 ID | 미정 | 미정 |
-| `DeathAnimationId` | 사망 애니메이션 ID | 미정 | 미정 |
+| `ID` | 몬스터 식별자 | 1부터 시작 | 확정 |
+| `DisplayName` | UI 표시 이름 | 몬스터별 지정 | 확정 |
+| `BaseHp` | 스테이지 배율 적용 전 기본 체력 | BigNumber 문자열 | 확정 |
+| `BaseRewardGold` | 처치 시 기본 Gold 보상 | BigNumber 문자열 | 확정 |
+| `PrefabName` | 몬스터 Prefab 이름 | `DummyMonster_Normal1~56`, `DummyMonster_Alternative1~56` 중 지정 | 확정 |
+
+최종 전투 값은 다음 규칙을 사용합니다.
+
+```text
+최종 체력 = Monster.BaseHp × Stage.HpMultiplier
+최종 Gold 보상 = Monster.BaseRewardGold × Stage.RewardGoldMultiplier
+```
 
 ## TapUpgradeTable 후보
 
@@ -65,8 +73,8 @@
 
 | 필드 후보 | 용도 | 현재 값 | 상태 |
 | --- | --- | --- | --- |
-| `CurrencyId` | 재화 식별자 | 미정 | 미정 |
-| `DisplayName` | 화면에 표시할 이름 | 미정 | 미정 |
+| `CurrencyId` | 재화 식별자 | `Gold` | 확정 |
+| `DisplayName` | 화면에 표시할 이름 | `Gold` 또는 `골드` | 확정 |
 | `IconId` | 아이콘 리소스 ID | 미정 | 미정 |
 | `InitialAmount` | 신규 게임 시작 보유량 | 미정 | 미정 |
 
