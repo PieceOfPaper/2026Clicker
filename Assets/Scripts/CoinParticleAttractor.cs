@@ -7,6 +7,12 @@ public class CoinParticleAttractor : MonoBehaviour
     [SerializeField] private Sprite[] _coinSprites;
     [SerializeField, Min(1)] private int _normalCoinCount = 10;
     [SerializeField, Min(1)] private int _bossCoinCount = 25;
+    [Header("Floor Bounce")]
+    [SerializeField, Min(0f)] private float _dropHeight = 2.2f;
+    [SerializeField, Min(0f)] private float _dropSpeed = 2.5f;
+    [SerializeField, Min(0f)] private float _gravity = 18f;
+    [SerializeField, Min(0f)] private float _bounceSpeed = 5.5f;
+    [SerializeField, Min(0f)] private float _horizontalScatterSpeed = 4.5f;
     [SerializeField, Min(0f)] private float _scatterDuration = 0.35f;
     [SerializeField, Min(0.1f)] private float _attractionSpeed = 12f;
     [SerializeField, Min(0.1f)] private float _attractionAcceleration = 35f;
@@ -21,6 +27,9 @@ public class CoinParticleAttractor : MonoBehaviour
         public BigNumber Amount;
         public Transform Target;
         public Vector3 TargetPosition;
+        public float GroundY;
+        public float BounceTime;
+        public bool HasBounced;
     }
 
     private void Awake()
@@ -45,11 +54,37 @@ public class CoinParticleAttractor : MonoBehaviour
             if (!_rewards.TryGetValue(particle.randomSeed, out var reward))
                 continue;
 
-            var targetPosition = reward.Target != null ? reward.Target.position : reward.TargetPosition;
             var aliveTime = particle.startLifetime - particle.remainingLifetime;
-            if (aliveTime < _scatterDuration)
-                continue;
 
+            if (!reward.HasBounced)
+            {
+                particle.velocity += Vector3.down * (_gravity * deltaTime);
+
+                if (particle.position.y <= reward.GroundY && particle.velocity.y <= 0f)
+                {
+                    var position = particle.position;
+                    position.y = reward.GroundY;
+                    particle.position = position;
+                    particle.velocity = new Vector3(
+                        Random.Range(-_horizontalScatterSpeed, _horizontalScatterSpeed),
+                        _bounceSpeed * Random.Range(0.85f, 1.15f),
+                        0f);
+
+                    reward.HasBounced = true;
+                    reward.BounceTime = aliveTime;
+                    _rewards[particle.randomSeed] = reward;
+                }
+
+                continue;
+            }
+
+            if (aliveTime - reward.BounceTime < _scatterDuration)
+            {
+                particle.velocity += Vector3.down * (_gravity * deltaTime);
+                continue;
+            }
+
+            var targetPosition = reward.Target != null ? reward.Target.position : reward.TargetPosition;
             var toTarget = targetPosition - particle.position;
             if (toTarget.sqrMagnitude <= _collectionDistance * _collectionDistance)
             {
@@ -88,8 +123,11 @@ public class CoinParticleAttractor : MonoBehaviour
             var seed = GetNextSeed();
             var emitParams = new ParticleSystem.EmitParams
             {
-                position = origin,
-                velocity = new Vector3(Random.Range(-3f, 3f), Random.Range(2.5f, 5f), 0f),
+                position = origin + Vector3.up * _dropHeight,
+                velocity = new Vector3(
+                    Random.Range(-_horizontalScatterSpeed * 0.5f, _horizontalScatterSpeed * 0.5f),
+                    -_dropSpeed * Random.Range(0.85f, 1.15f),
+                    0f),
                 startLifetime = 3f,
                 startSize = Random.Range(0.65f, 0.9f),
                 randomSeed = seed,
@@ -100,6 +138,9 @@ public class CoinParticleAttractor : MonoBehaviour
                 Amount = reward,
                 Target = target,
                 TargetPosition = target.position,
+                GroundY = origin.y,
+                BounceTime = 0f,
+                HasBounced = false,
             };
             _particleSystem.Emit(emitParams, 1);
         }
@@ -133,7 +174,8 @@ public class CoinParticleAttractor : MonoBehaviour
         main.startLifetime = 3f;
         main.startSpeed = 0f;
         main.startSize = 0.8f;
-        main.gravityModifier = 0.8f;
+        // Gravity is applied per reward so it can stop when attraction begins.
+        main.gravityModifier = 0f;
 
         var emission = _particleSystem.emission;
         emission.enabled = false;

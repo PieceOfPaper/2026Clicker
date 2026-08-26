@@ -158,6 +158,11 @@ MonoBehaviour:
   - {fileID: -6541766136644436370, guid: ede4b03d4049f481a80ce6756418b385, type: 3}
   _normalCoinCount: 10
   _bossCoinCount: 25
+  _dropHeight: 2.2
+  _dropSpeed: 2.5
+  _gravity: 18
+  _bounceSpeed: 5.5
+  _horizontalScatterSpeed: 4.5
   _scatterDuration: 0.35
   _attractionSpeed: 12
   _attractionAcceleration: 35
@@ -6944,7 +6949,7 @@ Transform:
   m_GameObject: {fileID: 1559171617}
   serializedVersion: 2
   m_LocalRotation: {x: -0, y: -0, z: -0, w: 1}
-  m_LocalPosition: {x: 3.31, y: 1.44, z: 0}
+  m_LocalPosition: {x: 3.31, y: -1.5600001, z: 0}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children: []
