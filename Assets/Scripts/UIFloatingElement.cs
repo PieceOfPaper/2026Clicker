@@ -9,6 +9,9 @@ public class UIFloatingElement : MonoBehaviour
     [SerializeField] private TMP_Text _textDamage;
     [SerializeField, Min(0.05f)] private float _duration = 0.7f;
     [SerializeField, Min(1f)] private float _riseDistance = 100f;
+    [SerializeField, Min(0.1f)] private float _startScale = 1f;
+    [SerializeField, Min(0.1f)] private float _peakScale = 1f;
+    [SerializeField] private string _prefix = string.Empty;
 
     private RectTransform _rectTransform;
     private Coroutine _animationCoroutine;
@@ -35,7 +38,8 @@ public class UIFloatingElement : MonoBehaviour
 
         _rectTransform.anchoredPosition = anchoredPosition;
         _pivot.anchoredPosition = Vector2.zero;
-        _textDamage.text = FormatNumber(damage);
+        _pivot.localScale = Vector3.one * _startScale;
+        _textDamage.text = _prefix + FormatNumber(damage);
         _textDamage.color = _baseColor;
         _animationCoroutine = StartCoroutine(Animate(onComplete));
     }
@@ -46,6 +50,8 @@ public class UIFloatingElement : MonoBehaviour
         {
             var progress = elapsed / _duration;
             _pivot.anchoredPosition = Vector2.up * (_riseDistance * progress);
+            var scaleProgress = Mathf.Sin(Mathf.Clamp01(progress * 2f) * Mathf.PI * 0.5f);
+            _pivot.localScale = Vector3.one * Mathf.Lerp(_startScale, _peakScale, scaleProgress);
 
             var color = _baseColor;
             color.a *= 1f - progress * progress;
@@ -54,6 +60,7 @@ public class UIFloatingElement : MonoBehaviour
         }
 
         _animationCoroutine = null;
+        _pivot.localScale = Vector3.one;
         onComplete?.Invoke(this);
     }
 

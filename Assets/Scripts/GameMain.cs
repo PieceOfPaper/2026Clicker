@@ -1,5 +1,6 @@
 using System.Collections;
 using UnityEngine;
+using UnityEngine.Serialization;
 using GoogleSheetsTable;
 
 public class GameMain : MonoBehaviour
@@ -15,7 +16,15 @@ public class GameMain : MonoBehaviour
     [SerializeField] private string _fallbackMonsterName = "DummyMonster";
 
     [Header("Battle Settings")]
-    [SerializeField] private BigNumber _tapDamage = 10;
+    [FormerlySerializedAs("_tapDamage")]
+    [SerializeField] private BigNumber _baseTouchDamage = 10;
+
+    [Header("Temporary Upgrade Balance")]
+    [SerializeField, Min(1.01f)] private float _touchDamageGrowthPerLevel = 1.2f;
+    [SerializeField] private BigNumber _touchDamageBaseCost = 10;
+    [SerializeField] private BigNumber _criticalChanceBaseCost = 25;
+    [SerializeField] private BigNumber _criticalDamageBaseCost = 30;
+    [SerializeField, Min(1.01f)] private float _upgradeCostGrowthPerLevel = 1.18f;
 
     private static GameMain s_instance;
     public static GameMain Instance => s_instance;
@@ -28,7 +37,12 @@ public class GameMain : MonoBehaviour
     public int CurrentStage { get; private set; } = 1;
     public int NormalMonstersDefeated { get; private set; }
     public BigNumber Currency { get; private set; }
-    public BigNumber TapDamage => _tapDamage;
+    public int TouchDamageLevel { get; private set; } = 1;
+    public int TouchCriticalChanceLevel { get; private set; } = 1;
+    public int TouchCriticalDamageLevel { get; private set; } = 1;
+    public BigNumber TapDamage => GetTouchDamageAtLevel(TouchDamageLevel);
+    public float TouchCriticalChance => Mathf.Min(TouchCriticalChanceLevel * 0.0001f, 0.5f);
+    public float TouchCriticalDamageMultiplier => 2f + Mathf.Min(TouchCriticalDamageLevel * 0.0001f, 0.5f);
     public float BossTimeRemaining { get; private set; }
     public float CurrentBossTimeLimit => _currentStageData.BossTimeLimitSeconds;
     public bool IsBossBattle { get; private set; }
@@ -53,9 +67,10 @@ public class GameMain : MonoBehaviour
     private Coroutine _spawnAfterDefeatCoroutine;
 
     public System.Action OnStartCallback;
-    public System.Action<BigNumber> OnAttackCallback;
+    public System.Action<BigNumber, bool> OnAttackCallback;
     public System.Action OnMonsterHpChangedCallback;
     public System.Action<BigNumber> OnGoldChangedCallback;
+    public System.Action OnStatsChangedCallback;
 
     
     private void Awake()
@@ -97,10 +112,12 @@ public class GameMain : MonoBehaviour
             return;
 
         _character.Attack();
-        CurrentMonsterHp = BigNumber.Max(BigNumber.Zero, CurrentMonsterHp - _tapDamage);
+        var isCritical = Random.value < Mathf.Clamp01(TouchCriticalChance);
+        var damage = isCritical ? TapDamage * TouchCriticalDamageMultiplier : TapDamage;
+        CurrentMonsterHp = BigNumber.Max(BigNumber.Zero, CurrentMonsterHp - damage);
         _monster.Hit();
         OnMonsterHpChangedCallback?.Invoke();
-        OnAttackCallback?.Invoke(_tapDamage);
+        OnAttackCallback?.Invoke(damage, isCritical);
 
         if (IsCurrentMonsterDead)
             DefeatCurrentMonster();
@@ -125,6 +142,67 @@ public class GameMain : MonoBehaviour
 
         Currency += amount;
         OnGoldChangedCallback?.Invoke(Currency);
+    }
+
+    public BigNumber GetTouchDamageUpgradeCost() => GetUpgradeCost(_touchDamageBaseCost, TouchDamageLevel);
+    public BigNumber GetNextTouchDamage() => GetTouchDamageAtLevel(TouchDamageLevel + 1);
+    public BigNumber GetCriticalChanceUpgradeCost() => GetUpgradeCost(_criticalChanceBaseCost, TouchCriticalChanceLevel);
+    public BigNumber GetCriticalDamageUpgradeCost() => GetUpgradeCost(_criticalDamageBaseCost, TouchCriticalDamageLevel);
+
+    public bool CanUpgradeTouchDamage() => Currency >= GetTouchDamageUpgradeCost();
+    public bool CanUpgradeCriticalChance() =>
+        TouchCriticalChanceLevel < 5000 && Currency >= GetCriticalChanceUpgradeCost();
+    public bool CanUpgradeCriticalDamage() =>
+        TouchCriticalDamageLevel < 5000 && Currency >= GetCriticalDamageUpgradeCost();
+
+    public bool TryUpgradeTouchDamage()
+    {
+        if (!TrySpendGold(GetTouchDamageUpgradeCost()))
+            return false;
+
+        TouchDamageLevel++;
+        OnStatsChangedCallback?.Invoke();
+        return true;
+    }
+
+    public bool TryUpgradeCriticalChance()
+    {
+        if (TouchCriticalChanceLevel >= 5000 || !TrySpendGold(GetCriticalChanceUpgradeCost()))
+            return false;
+
+        TouchCriticalChanceLevel++;
+        OnStatsChangedCallback?.Invoke();
+        return true;
+    }
+
+    public bool TryUpgradeCriticalDamage()
+    {
+        if (TouchCriticalDamageLevel >= 5000 || !TrySpendGold(GetCriticalDamageUpgradeCost()))
+            return false;
+
+        TouchCriticalDamageLevel++;
+        OnStatsChangedCallback?.Invoke();
+        return true;
+    }
+
+    private bool TrySpendGold(BigNumber amount)
+    {
+        if (amount <= BigNumber.Zero || Currency < amount)
+            return false;
+
+        Currency -= amount;
+        OnGoldChangedCallback?.Invoke(Currency);
+        return true;
+    }
+
+    private BigNumber GetUpgradeCost(BigNumber baseCost, int currentLevel)
+    {
+        return baseCost * BigNumber.Pow(_upgradeCostGrowthPerLevel, Mathf.Max(0, currentLevel - 1));
+    }
+
+    private BigNumber GetTouchDamageAtLevel(int level)
+    {
+        return _baseTouchDamage * BigNumber.Pow(_touchDamageGrowthPerLevel, Mathf.Max(0, level - 1));
     }
 
     private void OnDestroy()

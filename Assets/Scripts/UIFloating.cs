@@ -3,8 +3,13 @@ using UnityEngine;
 
 public class UIFloating : MonoBehaviour
 {
-    private readonly List<UIFloatingElement> _cachedElements = new();
-    private readonly Queue<UIFloatingElement> _elementPool = new();
+    [SerializeField] private UIFloatingElement _normalTemplate;
+    [SerializeField] private UIFloatingElement _criticalTemplate;
+
+    private readonly List<UIFloatingElement> _normalElements = new();
+    private readonly List<UIFloatingElement> _criticalElements = new();
+    private readonly Queue<UIFloatingElement> _normalPool = new();
+    private readonly Queue<UIFloatingElement> _criticalPool = new();
     private RectTransform _rectTransform;
     private Canvas _canvas;
 
@@ -20,8 +25,19 @@ public class UIFloating : MonoBehaviour
             if (element == null)
                 continue;
 
-            _cachedElements.Add(element);
-            PoolElement(element);
+            var isCritical = element == _criticalTemplate || child.name.Contains("Critical");
+            if (isCritical)
+            {
+                _criticalTemplate ??= element;
+                _criticalElements.Add(element);
+                PoolCriticalElement(element);
+            }
+            else
+            {
+                _normalTemplate ??= element;
+                _normalElements.Add(element);
+                PoolNormalElement(element);
+            }
         }
     }
 
@@ -37,13 +53,13 @@ public class UIFloating : MonoBehaviour
             GameMain.Instance.OnAttackCallback -= OnAttack;
     }
 
-    private void OnAttack(BigNumber damage)
+    private void OnAttack(BigNumber damage, bool isCritical)
     {
         var monster = GameMain.Instance != null ? GameMain.Instance.Monster : null;
         if (monster == null || _rectTransform == null || _canvas == null)
             return;
 
-        var element = GetElement();
+        var element = GetElement(isCritical);
         if (element == null)
             return;
 
@@ -57,37 +73,61 @@ public class UIFloating : MonoBehaviour
                 canvasCamera,
                 out var localPosition))
         {
-            PoolElement(element);
+            PoolElement(element, isCritical);
             return;
         }
 
         element.gameObject.SetActive(true);
         element.transform.SetAsLastSibling();
-        element.Play(damage, localPosition, PoolElement);
+        element.Play(
+            damage,
+            localPosition,
+            isCritical ? PoolCriticalElement : PoolNormalElement);
     }
 
-    private void PoolElement(UIFloatingElement element)
+    private void PoolElement(UIFloatingElement element, bool isCritical)
+    {
+        if (isCritical)
+            PoolCriticalElement(element);
+        else
+            PoolNormalElement(element);
+    }
+
+    private void PoolNormalElement(UIFloatingElement element)
     {
         if (element == null)
             return;
 
         element.gameObject.SetActive(false);
-        _elementPool.Enqueue(element);
+        _normalPool.Enqueue(element);
     }
-    
-    private UIFloatingElement GetElement()
+
+    private void PoolCriticalElement(UIFloatingElement element)
     {
+        if (element == null)
+            return;
+
+        element.gameObject.SetActive(false);
+        _criticalPool.Enqueue(element);
+    }
+
+    private UIFloatingElement GetElement(bool isCritical)
+    {
+        var pool = isCritical ? _criticalPool : _normalPool;
+        var elements = isCritical ? _criticalElements : _normalElements;
+        var template = isCritical ? _criticalTemplate : _normalTemplate;
         UIFloatingElement element = null;
-        while (_elementPool.Count > 0)
+        while (pool.Count > 0)
         {
-            element = _elementPool.Dequeue();
+            element = pool.Dequeue();
             if (element != null)
                 break;
         }
-        if (element == null && _cachedElements.Count > 0)
+        if (element == null && template != null)
         {
-            element = Instantiate(_cachedElements[0], transform);
-            _cachedElements.Add(element);
+            element = Instantiate(template, transform);
+            element.name = template.name;
+            elements.Add(element);
         }
 
         return element;
